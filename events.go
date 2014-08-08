@@ -13,6 +13,8 @@ func main() {
 	}
 	defer termbox.Close()
 
+	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
+
 	events := make(chan termbox.Event)
 	go pumpEvents(events)
 

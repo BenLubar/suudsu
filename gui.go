@@ -78,7 +78,7 @@ func (p *BorderPanel) Paint(offsetX, offsetY, left, top, width, height int) {
 		if i == 0 {
 			r = '┌'
 			bottom = '└'
-		} else if i == width - 1 {
+		} else if i == width-1 {
 			r = '┐'
 			bottom = '┘'
 		}
