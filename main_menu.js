@@ -1,6 +1,7 @@
 var MainMenu = {
 	Paint: function(offsetX, offsetY, left, top, width, height) {
-		var optionTop = 2 + offsetY;
+		this.lastWidth = width;
+		var optionTop = this.optionTop + offsetY;
 		for (var y = 0; y < height; y++) {
 			var option = [];
 			var optionLeft = 0;
@@ -20,25 +21,25 @@ var MainMenu = {
 		}
 	},
 
-	HandleKey: function(key, mod) {
+	HandleKey: function(key) {
 		switch (key) {
-		case termbox.KeyArrowUp:
+		case 'MenuPrev':
 			this.selection += this.options.length - 1;
 			this.selection %= this.options.length;
 			Repaint();
 			return true;
 
-		case termbox.KeyArrowDown:
+		case 'MenuNext':
 			this.selection += 1;
 			this.selection %= this.options.length;
 			Repaint();
 			return true;
 
-		case termbox.KeyEsc:
+		case 'MenuCancel':
 			Exit();
 			return true;
 
-		case termbox.KeyEnter:
+		case 'MenuSelect':
 			switch (this.selection) {
 			case 0:
 				// TODO
@@ -53,16 +54,31 @@ var MainMenu = {
 		return false;
 	},
 
-	HandleRune: function(ch, mod) {
-		
+	HandleRune: function(ch) {
+		return false;
 	},
 
 	HandleMouse: function(x, y) {
-		
+		var option = y - this.optionTop;
+		if (0 <= option && option < this.options.length) {
+			var optionLeft = Math.floor((this.lastWidth - this.options[option].length) / 2);
+			if (optionLeft <= x && x < optionLeft + this.options[option].length) {
+				if (option == this.selection) {
+					return this.HandleKey(termbox.KeyEnter, 0);
+				} else {
+					this.selection = option;
+					Repaint();
+					return true;
+				}
+			}
+		}
+		return false;
 	},
 
+	lastWidth: 1,
 	selection: 0,
-	options: ['New world'.split(''), 'Exit'.split('')]
+	options: ['New world'.split(''), 'Exit'.split('')],
+	optionTop: 2
 };
 
 var border = new BorderPanel();

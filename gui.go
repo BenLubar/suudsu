@@ -7,8 +7,8 @@ import (
 type Panel interface {
 	Paint(offsetX, offsetY, left, top, width, height int)
 
-	HandleKey(key termbox.Key, mod termbox.Modifier) bool
-	HandleRune(r rune, mod termbox.Modifier) bool
+	HandleKey(key string) bool
+	HandleRune(r rune) bool
 	HandleMouse(x, y int) bool
 }
 
@@ -32,25 +32,16 @@ func (p *RootPanel) Paint(offsetX, offsetY, left, top, width, height int) {
 	}
 }
 
-func (p *RootPanel) HandleKey(key termbox.Key, mod termbox.Modifier) bool {
-	if p.Child != nil && p.Child.HandleKey(key, mod) {
-		return true
+func (p *RootPanel) HandleKey(key string) bool {
+	if p.Child != nil {
+		return p.Child.HandleKey(key)
 	}
-
-	if key == termbox.KeyEsc {
-		select {
-		case exit <- struct{}{}:
-		default:
-		}
-		return true
-	}
-
 	return false
 }
 
-func (p *RootPanel) HandleRune(r rune, mod termbox.Modifier) bool {
+func (p *RootPanel) HandleRune(r rune) bool {
 	if p.Child != nil {
-		return p.Child.HandleRune(r, mod)
+		return p.Child.HandleRune(r)
 	}
 	return false
 }
@@ -66,12 +57,16 @@ type BorderPanel struct {
 	Title  []rune
 	Fg, Bg termbox.Attribute
 	Child  Panel
+
+	innerWidth, innerHeight int
 }
 
 var _ Panel = (*BorderPanel)(nil)
 
 func (p *BorderPanel) Paint(offsetX, offsetY, left, top, width, height int) {
 	if width <= 0 || height <= 0 {
+		p.innerWidth = 0
+		p.innerHeight = 0
 		return
 	}
 
@@ -94,31 +89,36 @@ func (p *BorderPanel) Paint(offsetX, offsetY, left, top, width, height int) {
 		if i >= titleOffset && i < titleOffset+len(p.Title) {
 			r = p.Title[i-titleOffset]
 		}
-		termbox.SetCell(left+i, top, r, p.Fg, p.Bg)
 		termbox.SetCell(left+i, top+height-1, bottom, p.Fg, p.Bg)
+		termbox.SetCell(left+i, top, r, p.Fg, p.Bg)
 	}
-	if p.Child != nil {
-		p.Child.Paint(offsetX, offsetY, left+1, top+1, width-2, height-2)
+
+	p.innerWidth = width - 2
+	p.innerHeight = height - 2
+
+	if p.Child != nil && p.innerWidth > 0 && p.innerHeight > 0 {
+		p.Child.Paint(offsetX, offsetY, left+1, top+1, p.innerWidth, p.innerHeight)
 	}
 }
 
-func (p *BorderPanel) HandleKey(key termbox.Key, mod termbox.Modifier) bool {
+func (p *BorderPanel) HandleKey(key string) bool {
 	if p.Child != nil {
-		return p.Child.HandleKey(key, mod)
+		return p.Child.HandleKey(key)
 	}
 	return false
 }
 
-func (p *BorderPanel) HandleRune(r rune, mod termbox.Modifier) bool {
+func (p *BorderPanel) HandleRune(r rune) bool {
 	if p.Child != nil {
-		return p.Child.HandleRune(r, mod)
+		return p.Child.HandleRune(r)
 	}
 	return false
 }
 
 func (p *BorderPanel) HandleMouse(x, y int) bool {
-	if p.Child != nil {
-		return p.Child.HandleMouse(x-1, y-1)
+	x, y = x-1, y-1
+	if p.Child != nil && 0 <= x && x < p.innerWidth && 0 <= y && y < p.innerHeight {
+		return p.Child.HandleMouse(x, y)
 	}
 	return false
 }

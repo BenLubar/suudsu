@@ -4,99 +4,109 @@ import (
 	"github.com/nsf/termbox-go"
 	"github.com/robertkrimen/otto"
 	"log"
+	"os"
+	"path/filepath"
 	"reflect"
 )
 
 func ScriptGlobals(o *otto.Otto) {
-	t, err := o.Object(`termbox = {}`)
-	if err != nil {
-		log.Panicln("ScriptGlobals:", err)
+	defer func() {
+		if err := recover(); err != nil {
+			log.Panicln("ScriptGlobals:", err)
+		}
+	}()
+	checkError := func(err error) {
+		if err != nil {
+			panic(err)
+		}
 	}
-	t.Set("KeyF1", int(termbox.KeyF1))
-	t.Set("KeyF2", int(termbox.KeyF2))
-	t.Set("KeyF3", int(termbox.KeyF3))
-	t.Set("KeyF4", int(termbox.KeyF4))
-	t.Set("KeyF5", int(termbox.KeyF5))
-	t.Set("KeyF6", int(termbox.KeyF6))
-	t.Set("KeyF7", int(termbox.KeyF7))
-	t.Set("KeyF8", int(termbox.KeyF8))
-	t.Set("KeyF9", int(termbox.KeyF9))
-	t.Set("KeyF10", int(termbox.KeyF10))
-	t.Set("KeyF11", int(termbox.KeyF11))
-	t.Set("KeyF12", int(termbox.KeyF12))
-	t.Set("KeyInsert", int(termbox.KeyInsert))
-	t.Set("KeyDelete", int(termbox.KeyDelete))
-	t.Set("KeyHome", int(termbox.KeyHome))
-	t.Set("KeyEnd", int(termbox.KeyEnd))
-	t.Set("KeyPgup", int(termbox.KeyPgup))
-	t.Set("KeyPgdn", int(termbox.KeyPgdn))
-	t.Set("KeyArrowUp", int(termbox.KeyArrowUp))
-	t.Set("KeyArrowDown", int(termbox.KeyArrowDown))
-	t.Set("KeyArrowLeft", int(termbox.KeyArrowLeft))
-	t.Set("KeyArrowRight", int(termbox.KeyArrowRight))
-	t.Set("MouseLeft", int(termbox.MouseLeft))
-	t.Set("MouseMiddle", int(termbox.MouseMiddle))
-	t.Set("MouseRight", int(termbox.MouseRight))
-	t.Set("KeyCtrlTilde", int(termbox.KeyCtrlTilde))
-	t.Set("KeyCtrl2", int(termbox.KeyCtrl2))
-	t.Set("KeyCtrlSpace", int(termbox.KeyCtrlSpace))
-	t.Set("KeyCtrlA", int(termbox.KeyCtrlA))
-	t.Set("KeyCtrlB", int(termbox.KeyCtrlB))
-	t.Set("KeyCtrlC", int(termbox.KeyCtrlC))
-	t.Set("KeyCtrlD", int(termbox.KeyCtrlD))
-	t.Set("KeyCtrlE", int(termbox.KeyCtrlE))
-	t.Set("KeyCtrlF", int(termbox.KeyCtrlF))
-	t.Set("KeyCtrlG", int(termbox.KeyCtrlG))
-	t.Set("KeyBackspace", int(termbox.KeyBackspace))
-	t.Set("KeyCtrlH", int(termbox.KeyCtrlH))
-	t.Set("KeyTab", int(termbox.KeyTab))
-	t.Set("KeyCtrlI", int(termbox.KeyCtrlI))
-	t.Set("KeyCtrlJ", int(termbox.KeyCtrlJ))
-	t.Set("KeyCtrlK", int(termbox.KeyCtrlK))
-	t.Set("KeyCtrlL", int(termbox.KeyCtrlL))
-	t.Set("KeyEnter", int(termbox.KeyEnter))
-	t.Set("KeyCtrlM", int(termbox.KeyCtrlM))
-	t.Set("KeyCtrlN", int(termbox.KeyCtrlN))
-	t.Set("KeyCtrlO", int(termbox.KeyCtrlO))
-	t.Set("KeyCtrlP", int(termbox.KeyCtrlP))
-	t.Set("KeyCtrlQ", int(termbox.KeyCtrlQ))
-	t.Set("KeyCtrlR", int(termbox.KeyCtrlR))
-	t.Set("KeyCtrlS", int(termbox.KeyCtrlS))
-	t.Set("KeyCtrlT", int(termbox.KeyCtrlT))
-	t.Set("KeyCtrlU", int(termbox.KeyCtrlU))
-	t.Set("KeyCtrlV", int(termbox.KeyCtrlV))
-	t.Set("KeyCtrlW", int(termbox.KeyCtrlW))
-	t.Set("KeyCtrlX", int(termbox.KeyCtrlX))
-	t.Set("KeyCtrlY", int(termbox.KeyCtrlY))
-	t.Set("KeyCtrlZ", int(termbox.KeyCtrlZ))
-	t.Set("KeyEsc", int(termbox.KeyEsc))
-	t.Set("KeyCtrlLsqBracket", int(termbox.KeyCtrlLsqBracket))
-	t.Set("KeyCtrl3", int(termbox.KeyCtrl3))
-	t.Set("KeyCtrl4", int(termbox.KeyCtrl4))
-	t.Set("KeyCtrlBackslash", int(termbox.KeyCtrlBackslash))
-	t.Set("KeyCtrl5", int(termbox.KeyCtrl5))
-	t.Set("KeyCtrlRsqBracket", int(termbox.KeyCtrlRsqBracket))
-	t.Set("KeyCtrl6", int(termbox.KeyCtrl6))
-	t.Set("KeyCtrl7", int(termbox.KeyCtrl7))
-	t.Set("KeyCtrlSlash", int(termbox.KeyCtrlSlash))
-	t.Set("KeyCtrlUnderscore", int(termbox.KeyCtrlUnderscore))
-	t.Set("KeySpace", int(termbox.KeySpace))
-	t.Set("KeyBackspace2", int(termbox.KeyBackspace2))
-	t.Set("KeyCtrl8", int(termbox.KeyCtrl8))
-	t.Set("ModAlt", int(termbox.ModAlt))
-	t.Set("ColorDefault", int(termbox.ColorDefault))
-	t.Set("ColorBlack", int(termbox.ColorBlack))
-	t.Set("ColorRed", int(termbox.ColorRed))
-	t.Set("ColorGreen", int(termbox.ColorGreen))
-	t.Set("ColorYellow", int(termbox.ColorYellow))
-	t.Set("ColorBlue", int(termbox.ColorBlue))
-	t.Set("ColorMagenta", int(termbox.ColorMagenta))
-	t.Set("ColorCyan", int(termbox.ColorCyan))
-	t.Set("ColorWhite", int(termbox.ColorWhite))
-	t.Set("AttrBold", int(termbox.AttrBold))
-	t.Set("AttrUnderline", int(termbox.AttrUnderline))
-	t.Set("AttrReverse", int(termbox.AttrReverse))
-	t.Set("SetCell", func(f otto.FunctionCall) otto.Value {
+	t, err := o.Object(`termbox = {}`)
+	checkError(err)
+	checkError(t.Set("KeyF1", int(termbox.KeyF1)))
+	checkError(t.Set("KeyF2", int(termbox.KeyF2)))
+	checkError(t.Set("KeyF3", int(termbox.KeyF3)))
+	checkError(t.Set("KeyF4", int(termbox.KeyF4)))
+	checkError(t.Set("KeyF5", int(termbox.KeyF5)))
+	checkError(t.Set("KeyF6", int(termbox.KeyF6)))
+	checkError(t.Set("KeyF7", int(termbox.KeyF7)))
+	checkError(t.Set("KeyF8", int(termbox.KeyF8)))
+	checkError(t.Set("KeyF9", int(termbox.KeyF9)))
+	checkError(t.Set("KeyF10", int(termbox.KeyF10)))
+	checkError(t.Set("KeyF11", int(termbox.KeyF11)))
+	checkError(t.Set("KeyF12", int(termbox.KeyF12)))
+	checkError(t.Set("KeyInsert", int(termbox.KeyInsert)))
+	checkError(t.Set("KeyDelete", int(termbox.KeyDelete)))
+	checkError(t.Set("KeyHome", int(termbox.KeyHome)))
+	checkError(t.Set("KeyEnd", int(termbox.KeyEnd)))
+	checkError(t.Set("KeyPgup", int(termbox.KeyPgup)))
+	checkError(t.Set("KeyPgdn", int(termbox.KeyPgdn)))
+	checkError(t.Set("KeyArrowUp", int(termbox.KeyArrowUp)))
+	checkError(t.Set("KeyArrowDown", int(termbox.KeyArrowDown)))
+	checkError(t.Set("KeyArrowLeft", int(termbox.KeyArrowLeft)))
+	checkError(t.Set("KeyArrowRight", int(termbox.KeyArrowRight)))
+	checkError(t.Set("MouseLeft", int(termbox.MouseLeft)))
+	checkError(t.Set("MouseMiddle", int(termbox.MouseMiddle)))
+	checkError(t.Set("MouseRight", int(termbox.MouseRight)))
+	checkError(t.Set("KeyCtrlTilde", int(termbox.KeyCtrlTilde)))
+	checkError(t.Set("KeyCtrl2", int(termbox.KeyCtrl2)))
+	checkError(t.Set("KeyCtrlSpace", int(termbox.KeyCtrlSpace)))
+	checkError(t.Set("KeyCtrlA", int(termbox.KeyCtrlA)))
+	checkError(t.Set("KeyCtrlB", int(termbox.KeyCtrlB)))
+	checkError(t.Set("KeyCtrlC", int(termbox.KeyCtrlC)))
+	checkError(t.Set("KeyCtrlD", int(termbox.KeyCtrlD)))
+	checkError(t.Set("KeyCtrlE", int(termbox.KeyCtrlE)))
+	checkError(t.Set("KeyCtrlF", int(termbox.KeyCtrlF)))
+	checkError(t.Set("KeyCtrlG", int(termbox.KeyCtrlG)))
+	checkError(t.Set("KeyBackspace", int(termbox.KeyBackspace)))
+	checkError(t.Set("KeyCtrlH", int(termbox.KeyCtrlH)))
+	checkError(t.Set("KeyTab", int(termbox.KeyTab)))
+	checkError(t.Set("KeyCtrlI", int(termbox.KeyCtrlI)))
+	checkError(t.Set("KeyCtrlJ", int(termbox.KeyCtrlJ)))
+	checkError(t.Set("KeyCtrlK", int(termbox.KeyCtrlK)))
+	checkError(t.Set("KeyCtrlL", int(termbox.KeyCtrlL)))
+	checkError(t.Set("KeyEnter", int(termbox.KeyEnter)))
+	checkError(t.Set("KeyCtrlM", int(termbox.KeyCtrlM)))
+	checkError(t.Set("KeyCtrlN", int(termbox.KeyCtrlN)))
+	checkError(t.Set("KeyCtrlO", int(termbox.KeyCtrlO)))
+	checkError(t.Set("KeyCtrlP", int(termbox.KeyCtrlP)))
+	checkError(t.Set("KeyCtrlQ", int(termbox.KeyCtrlQ)))
+	checkError(t.Set("KeyCtrlR", int(termbox.KeyCtrlR)))
+	checkError(t.Set("KeyCtrlS", int(termbox.KeyCtrlS)))
+	checkError(t.Set("KeyCtrlT", int(termbox.KeyCtrlT)))
+	checkError(t.Set("KeyCtrlU", int(termbox.KeyCtrlU)))
+	checkError(t.Set("KeyCtrlV", int(termbox.KeyCtrlV)))
+	checkError(t.Set("KeyCtrlW", int(termbox.KeyCtrlW)))
+	checkError(t.Set("KeyCtrlX", int(termbox.KeyCtrlX)))
+	checkError(t.Set("KeyCtrlY", int(termbox.KeyCtrlY)))
+	checkError(t.Set("KeyCtrlZ", int(termbox.KeyCtrlZ)))
+	checkError(t.Set("KeyEsc", int(termbox.KeyEsc)))
+	checkError(t.Set("KeyCtrlLsqBracket", int(termbox.KeyCtrlLsqBracket)))
+	checkError(t.Set("KeyCtrl3", int(termbox.KeyCtrl3)))
+	checkError(t.Set("KeyCtrl4", int(termbox.KeyCtrl4)))
+	checkError(t.Set("KeyCtrlBackslash", int(termbox.KeyCtrlBackslash)))
+	checkError(t.Set("KeyCtrl5", int(termbox.KeyCtrl5)))
+	checkError(t.Set("KeyCtrlRsqBracket", int(termbox.KeyCtrlRsqBracket)))
+	checkError(t.Set("KeyCtrl6", int(termbox.KeyCtrl6)))
+	checkError(t.Set("KeyCtrl7", int(termbox.KeyCtrl7)))
+	checkError(t.Set("KeyCtrlSlash", int(termbox.KeyCtrlSlash)))
+	checkError(t.Set("KeyCtrlUnderscore", int(termbox.KeyCtrlUnderscore)))
+	checkError(t.Set("KeySpace", int(termbox.KeySpace)))
+	checkError(t.Set("KeyBackspace2", int(termbox.KeyBackspace2)))
+	checkError(t.Set("KeyCtrl8", int(termbox.KeyCtrl8)))
+	checkError(t.Set("ModAlt", int(termbox.ModAlt)))
+	checkError(t.Set("ColorDefault", int(termbox.ColorDefault)))
+	checkError(t.Set("ColorBlack", int(termbox.ColorBlack)))
+	checkError(t.Set("ColorRed", int(termbox.ColorRed)))
+	checkError(t.Set("ColorGreen", int(termbox.ColorGreen)))
+	checkError(t.Set("ColorYellow", int(termbox.ColorYellow)))
+	checkError(t.Set("ColorBlue", int(termbox.ColorBlue)))
+	checkError(t.Set("ColorMagenta", int(termbox.ColorMagenta)))
+	checkError(t.Set("ColorCyan", int(termbox.ColorCyan)))
+	checkError(t.Set("ColorWhite", int(termbox.ColorWhite)))
+	checkError(t.Set("AttrBold", int(termbox.AttrBold)))
+	checkError(t.Set("AttrUnderline", int(termbox.AttrUnderline)))
+	checkError(t.Set("AttrReverse", int(termbox.AttrReverse)))
+	checkError(t.Set("SetCell", func(f otto.FunctionCall) otto.Value {
 		x, err := f.Argument(0).ToInteger()
 		if err != nil {
 			panic(err)
@@ -124,44 +134,59 @@ func ScriptGlobals(o *otto.Otto) {
 		}
 		termbox.SetCell(int(x), int(y), r[0], termbox.Attribute(fg), termbox.Attribute(bg))
 		return otto.UndefinedValue()
-	})
+	}))
 
-	o.Set("UI", func(f otto.FunctionCall) otto.Value {
+	checkError(o.Set("UI", func(f otto.FunctionCall) otto.Value {
 		InitializeUI()
 
 		p, _ := f.Otto.Object(`({})`)
 		initScriptPanel(p, UI)
 		return p.Value()
-	})
+	}))
 
-	o.Set("BorderPanel", func(f otto.FunctionCall) otto.Value {
+	checkError(o.Set("BorderPanel", func(f otto.FunctionCall) otto.Value {
 		initScriptPanel(f.This.Object(), &BorderPanel{})
 		return f.This
-	})
+	}))
 
-	o.Set("Repaint", func(f otto.FunctionCall) otto.Value {
+	checkError(o.Set("Repaint", func(f otto.FunctionCall) otto.Value {
 		Repaint()
 		return otto.UndefinedValue()
-	})
+	}))
 
-	o.Set("Exit", func(f otto.FunctionCall) otto.Value {
+	checkError(o.Set("require", func(f otto.FunctionCall) otto.Value {
+		path := filepath.Clean(f.Argument(0).String() + ".js")
+
+		r, err := os.Open(path)
+		if err != nil {
+			panic(err)
+		}
+		defer r.Close()
+
+		v, err := f.Otto.Run(r)
+		if err != nil {
+			panic(err)
+		}
+
+		return v
+	}))
+
+	checkError(o.Set("Exit", func(f otto.FunctionCall) otto.Value {
 		select {
 		case exit <- struct{}{}:
 		default:
 		}
 		return otto.UndefinedValue()
-	})
+	}))
 }
 
 var float64Type = reflect.TypeOf(float64(0))
 var stringType = reflect.TypeOf(string(""))
 var boolType = reflect.TypeOf(bool(false))
-var panelType reflect.Type
-
-func init() {
+var panelType = func() reflect.Type {
 	var panel Panel
-	panelType = reflect.TypeOf(&panel).Elem()
-}
+	return reflect.TypeOf(&panel).Elem()
+}()
 
 func initScriptPanel(o *otto.Object, p Panel) {
 	if sp, ok := p.(*ScriptedPanel); ok {
@@ -209,15 +234,11 @@ func initScriptPanel(o *otto.Object, p Panel) {
 		log.Println("initScriptPanel:", err)
 	}
 	err = o.Set("HandleKey", func(f otto.FunctionCall) otto.Value {
-		key, err := f.Argument(0).ToInteger()
+		key, err := f.Argument(0).ToString()
 		if err != nil {
 			panic(err)
 		}
-		mod, err := f.Argument(1).ToInteger()
-		if err != nil {
-			panic(err)
-		}
-		v, err := otto.ToValue(p.HandleKey(termbox.Key(key), termbox.Modifier(mod)))
+		v, err := otto.ToValue(p.HandleKey(key))
 		if err != nil {
 			panic(err)
 		}
@@ -231,15 +252,11 @@ func initScriptPanel(o *otto.Object, p Panel) {
 		if err != nil {
 			panic(err)
 		}
-		mod, err := f.Argument(1).ToInteger()
-		if err != nil {
-			panic(err)
-		}
 		r := []rune(s)
 		if len(r) != 1 {
 			panic("HandleRune: invalid value for rune")
 		}
-		v, err := otto.ToValue(p.HandleRune(r[0], termbox.Modifier(mod)))
+		v, err := otto.ToValue(p.HandleRune(r[0]))
 		if err != nil {
 			panic(err)
 		}
@@ -401,8 +418,8 @@ func (p *ScriptedPanel) Paint(offsetX, offsetY, left, top, width, height int) {
 	p.fn("Paint", offsetX, offsetY, left, top, width, height)
 }
 
-func (p *ScriptedPanel) HandleKey(key termbox.Key, mod termbox.Modifier) bool {
-	v := p.fn("HandleKey", int(key), int(mod))
+func (p *ScriptedPanel) HandleKey(key string) bool {
+	v := p.fn("HandleKey", key)
 	b, err := v.ToBoolean()
 	if err != nil {
 		log.Println("ScriptedPanel:", "HandleKey", p.Script, err)
@@ -411,8 +428,8 @@ func (p *ScriptedPanel) HandleKey(key termbox.Key, mod termbox.Modifier) bool {
 	return b
 }
 
-func (p *ScriptedPanel) HandleRune(r rune, mod termbox.Modifier) bool {
-	v := p.fn("HandleRune", string(r), int(mod))
+func (p *ScriptedPanel) HandleRune(r rune) bool {
+	v := p.fn("HandleRune", string(r))
 	b, err := v.ToBoolean()
 	if err != nil {
 		log.Println("ScriptedPanel:", "HandleRune", p.Script, err)

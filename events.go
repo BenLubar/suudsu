@@ -1,16 +1,19 @@
 package main
 
 import (
-	"fmt"
 	"github.com/nsf/termbox-go"
+	"log"
 	"os"
+	"syscall"
 )
 
 var exit = make(chan struct{}, 1)
 
 func main() {
+	redirectStderr("error.log")
+
 	if err := termbox.Init(); err != nil {
-		fmt.Fprintln(os.Stderr, "Initialization error:", err)
+		log.Println("Initialization error:", err)
 		return
 	}
 	defer termbox.Close()
@@ -55,5 +58,18 @@ func main() {
 func pumpEvents(ch chan<- termbox.Event) {
 	for {
 		ch <- termbox.PollEvent()
+	}
+}
+
+func redirectStderr(name string) {
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatalln("could not open error log for writing:", err)
+	}
+	defer f.Close()
+
+	err = syscall.Dup2(int(f.Fd()), int(os.Stderr.Fd()))
+	if err != nil {
+		log.Fatalln("could not open error log for writing:", err)
 	}
 }
