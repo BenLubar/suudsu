@@ -33,9 +33,18 @@ func (p *RootPanel) Paint(offsetX, offsetY, left, top, width, height int) {
 }
 
 func (p *RootPanel) HandleKey(key termbox.Key, mod termbox.Modifier) bool {
-	if p.Child != nil {
-		return p.Child.HandleKey(key, mod)
+	if p.Child != nil && p.Child.HandleKey(key, mod) {
+		return true
 	}
+
+	if key == termbox.KeyEsc {
+		select {
+		case exit <- struct{}{}:
+		default:
+		}
+		return true
+	}
+
 	return false
 }
 

@@ -2,6 +2,9 @@ package main
 
 import (
 	"github.com/nsf/termbox-go"
+	"github.com/robertkrimen/otto"
+	"log"
+	"os"
 )
 
 var repaint = make(chan struct{}, 1)
@@ -29,11 +32,14 @@ func InitializeUI() {
 		return
 	}
 
-	UI = &RootPanel{
-		Child: &BorderPanel{
-			Title: []rune("Suudsu"),
-			Fg:    termbox.ColorBlack,
-			Bg:    termbox.ColorWhite,
-		},
+	UI = &RootPanel{}
+	o := otto.New()
+	ScriptGlobals(o)
+	f, err := os.Open("main_menu.js")
+	if err != nil {
+		log.Println("InitializeUI:", err)
+		return
 	}
+	defer f.Close()
+	o.Run(f)
 }

@@ -129,7 +129,7 @@ func ScriptGlobals(o *otto.Otto) {
 	o.Set("UI", func(f otto.FunctionCall) otto.Value {
 		InitializeUI()
 
-		p, _ := f.Otto.Object(`{}`)
+		p, _ := f.Otto.Object(`({})`)
 		initScriptPanel(p, UI)
 		return p.Value()
 	})
@@ -137,6 +137,19 @@ func ScriptGlobals(o *otto.Otto) {
 	o.Set("BorderPanel", func(f otto.FunctionCall) otto.Value {
 		initScriptPanel(f.This.Object(), &BorderPanel{})
 		return f.This
+	})
+
+	o.Set("Repaint", func(f otto.FunctionCall) otto.Value {
+		Repaint()
+		return otto.UndefinedValue()
+	})
+
+	o.Set("Exit", func(f otto.FunctionCall) otto.Value {
+		select {
+		case exit <- struct{}{}:
+		default:
+		}
+		return otto.UndefinedValue()
 	})
 }
 
@@ -254,7 +267,7 @@ func initScriptPanel(o *otto.Object, p Panel) {
 		log.Println("initScriptPanel:", err)
 	}
 
-	vp := reflect.ValueOf(p)
+	vp := reflect.ValueOf(p).Elem()
 	tp := vp.Type()
 	for i := 0; i < tp.NumField(); i++ {
 		ft := tp.Field(i)
@@ -370,7 +383,7 @@ func (p *ScriptedPanel) fn(name string, args ...interface{}) otto.Value {
 		return otto.UndefinedValue()
 	}
 
-	if fn.IsFunction() {
+	if !fn.IsFunction() {
 		log.Println("ScriptedPanel:", name, p.Script, fn, "is not a function")
 		return otto.UndefinedValue()
 	}

@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+var exit = make(chan struct{}, 1)
+
 func main() {
 	if err := termbox.Init(); err != nil {
 		fmt.Fprintln(os.Stderr, "Initialization error:", err)
